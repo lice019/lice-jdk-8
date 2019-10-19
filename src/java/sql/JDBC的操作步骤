@@ -1,0 +1,46 @@
+java在原来sun公司时，最初的出发时设计一套所有的数据库操作的API，但后来由于数据库的厂商太多了，而且各个数据库的
+厂商的操作数据库API不统一，所以sun团队放弃了这个想法，只定义一套java操作数据库的接口规范。具体的数据库访问操作
+由厂商自己来实现。java通过加装相应的数据库驱动来实现数据库的访问连接。
+JDBC的基本操作步骤：
+1、加装驱动。
+2、通过DriverManager驱动管理器来建立数据库的连接。
+3、同Connection对象来操作数据库的相应操作。
+4、通过操作返回相应的结果或结果集
+5、关闭连接
+代码：
+  //1,注册驱动
+  //   DriverManager.registerDriver(new com.mysql.jdbc.Driver());
+  //   System.getProperty("jdbc.driver", "con.mysql.jdbc.Driver");
+       Class.forName("com.mysql.jdbc.Driver");//这三种注册方式，推荐使用这种
+
+    //2，建立连接
+    //url格式
+    //JDBC:子协议:子名称//主机名:端口/数据库名称
+    String url = "jdbc:mysql://localhost:3306/test";//如果是本机，也可以将localhost:3306省掉
+    String user = "root";
+    String password = "123456";
+    Connection conn = (Connection)DriverManager.getConnection(url, user, password);
+
+    //3，创建slq执行语句
+    Statement st = (Statement) conn.createStatement();
+
+    //4,执行语句
+    ResultSet rs = st.executeQuery("select * from a");
+
+    //5，处理执行结果
+    while (rs.next()) {
+      System.out.println(rs.getObject(1));
+    }
+
+    //6，关闭连接，释放资源
+    rs.close();
+    st.close();
+    conn.close();
+  }
+
+DriverManager	数据库驱动管理类，用于加载和卸载各种驱动程序，并建立于数据库的连接
+Connection	此接口用于连接数据库
+Statement	此接口用于执行SQL语句并将数据检索到ResultSet中
+ResultSet	结果集接口，提供检索SQL语句返回数据的各种方法
+PreparedStatement	此接口用于执行预编译的SQL语句
+CallableStatement	此接口用于执行SQL存储过程的语句
