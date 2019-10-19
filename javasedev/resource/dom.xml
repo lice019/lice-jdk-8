@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<bookstore>
+    <book id="1">
+        <name>冰与火之歌</name>
+        <author>乔治马丁</author>
+        <year>2014</year>
+        <price>89.00元</price>
+    </book>
+    <book id="2">
+        <name>安徒生童话</name>
+        <author>安徒生</author>
+        <year>2004</year>
+        <price>77.00元</price>
+    </book>
+    <book id="3">
+        <name>Spring源码</name>
+        <author>spring</author>
+        <year>1997</year>
+        <price>98.00元</price>
+    </book>
+    <book id="4">
+        <name>XML技术栈</name>
+        <author>JHON</author>
+        <year>1997</year>
+        <price>100.oo元</price>
+    </book>
+<book id="0">
+<name>insertElement</name>
+<author>insertElement</author>
+<year>insertElement</year>
+<price>insertElement</price>
+</book>
+</bookstore>
