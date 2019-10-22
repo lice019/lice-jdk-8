@@ -43,6 +43,7 @@ public interface Map<K, V> {
     // Bulk Operations---块级操作
 
 
+    //此方法为重要方法
     void putAll(Map<? extends K, ? extends V> m);
 
     //清空map中元素

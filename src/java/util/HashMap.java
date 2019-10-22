@@ -14,9 +14,19 @@ import sun.misc.SharedSecrets;
 
 /**
  * HashMap：HashMap底层在jdk1.7之前是使用了Entry对象的数组来存储数据，在jdk1.7开始使用改为Node和红黑树TreeNode算法来存储数据。
- * jdk1.7开始对HashMap的底层容器存储数据的方式进行了该进。
- * 基于哈希表的实现的Map接口。 此实现提供了所有可选的地图操作，并允许null的值和null键。 （ HashMap类大致相当于Hashtable ，除了它是不同步的，并允许null）。
- * 这个类不能保证地图的顺序; 特别是，它不能保证订单在一段时间内保持不变。
+ * jdk1.7开始对HashMap的底层容器存储数据的方式进行了改进。
+ * HashMap特点：
+ * 1、HashMap是使用hash值（哈希表）实现的。
+ * 2、允许key和value为null，但是由于map的key是唯一的也仅是只有一个key为null而已。
+ * 3、key在容器中的不保证顺序，不能保证在一段时间内保持不变
+ * 4、HashMap底层是使用动态数组和hashCode结合，jdk1.7之后又结合了数组和双向链表和红黑树实现存储的；
+ * 充分了利用了数组和链表数据结构的存储效率的优点来提高存储效率和内存节省
+ * 5、HashMap在jdk1.7之前容器是Entry对象，jdk1.7之后是Node（实现了Map接口中Entry接口）和TreeNode（实现了LinkedHashMap中的entry接口）实现
+ * <p>
+ * HashMap和HashTable区别：
+ * 1、HashMap允许key-value为null，HashTable不允许
+ * 2、HashMap不是线程安全的，HashTable是线程安全的。
+ * 3、hashTable是jdk1.0开始，HashMap是jdk1.2开始
  *
  * @param <K>
  * @param <V>
@@ -28,10 +38,12 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
 
 
     //默认初始化HashMap的空间大小
+    //1<<4=16   左移
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
 
     //最大容量
+    //1<<30=1073741824
     static final int MAXIMUM_CAPACITY = 1 << 30;
 
 
@@ -51,6 +63,13 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     static final int MIN_TREEIFY_CAPACITY = 64;
 
 
+    /*
+     *Node中有四个重要属性：
+     * 1、hash：用于Node对象的hashCode计算值
+     * 2、key：map中的key
+     * 3、value：map中value
+     * 4、next：实际上是Node对象，用于指针作用，指向下一个node节点
+     */
     static class Node<K, V> implements Map.Entry<K, V> {
         //hash值，保证对象的唯一，也用于计算下标
         final int hash;
@@ -89,13 +108,14 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
             return Objects.hashCode(key) ^ Objects.hashCode(value);
         }
 
-        //设置Node的value
+        //设置Node的value，返回原来的的value
         public final V setValue(V newValue) {
             V oldValue = value;
             value = newValue;
             return oldValue;
         }
 
+        //判断Node对象是否相等，判断的是地址值和key、value的地址
         public final boolean equals(Object o) {
             if (o == this)
                 return true;
@@ -109,16 +129,24 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
         }
     }
 
+
+
+
+
+
+
     /* ---------------- Static utilities--静态的公用事业 -------------- */
 
 
     //通过key运算得出hash
     static final int hash(Object key) {
         int h;
+        //key==null，hashCode是0
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 
 
+    //class字节码的比较
     static Class<?> comparableClassFor(Object x) {
         //Object的x对象，是否是Comparable接口或该接口的实现类的实例对象
         if (x instanceof Comparable) {
@@ -149,6 +177,8 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     }
 
 
+    //Node数组的table的size计算
+    //分配适当的容器长度给table数组
     static final int tableSizeFor(int cap) {
         int n = cap - 1;
         n |= n >>> 1;
@@ -192,7 +222,15 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     /* ---------------- Public operations -------------- */
 
 
-    //HashMap的构造方法，实例时可以分配容器容量的大小但是不能超过MAXIMUM_CAPACITY = 1 << 30；如果大于最大的容量，HashMap内部将传入的容量置为MAXIMUM_CAPACITY = 1 << 30
+    /*
+     *HashMap的构造方法，实例时可以分配容器容量的大小但是不能超过MAXIMUM_CAPACITY = 1 << 30；
+     * 如果大于最大的容量，HashMap内部将传入的容量置为MAXIMUM_CAPACITY = 1 << 30
+     *
+     *在初始化HashMap对象时，并没有为底层容器开辟容量（即数组的长度），
+     * 也没有创建容器的对象，而是将容器容器的参数进行设置而已。
+     * 而是在put时，才使用这些参数进行开辟容器的容量和初始化容器对象
+     *
+     */
     public HashMap(int initialCapacity, float loadFactor) {
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " +
@@ -203,7 +241,10 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
         if (loadFactor <= 0 || Float.isNaN(loadFactor))
             throw new IllegalArgumentException("Illegal load factor: " +
                     loadFactor);
+
+        //HashMap对象的加载因子
         this.loadFactor = loadFactor;
+        //初始table数组的容器长度
         this.threshold = tableSizeFor(initialCapacity);
     }
 
@@ -220,6 +261,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     }
 
 
+    //初始化HashMap时，put另一个Map集合的元素到该HashMap对象中
     public HashMap(Map<? extends K, ? extends V> m) {
         this.loadFactor = DEFAULT_LOAD_FACTOR;
         //将Entry对象添加到该HashMap中
@@ -228,27 +270,41 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
 
 
     final void putMapEntries(Map<? extends K, ? extends V> m, boolean evict) {
-        //获取添加进来的元素个数
+        //获取Map集合的元素个数
         int s = m.size();
-        //如果大于0
+        //如果是大于0才进行添加处理，空Map集合不作处理
         if (s > 0) {
-            //如果HashMap的容器table(Node类型的数组)为null
+            //如果HashMap的容器table(Node类型的数组)为null，则还没有被初始化
             if (table == null) { // pre-size
+                /*
+                 * table长度的前置处理：
+                 * Map集合元素的个数除以加载因子：(float)s/loadFactor+0.1f
+                 */
                 float ft = ((float) s / loadFactor) + 1.0F;
-                /**
-                 * 如果ft小于MAXIMUM_CAPACITY，则t=ft；
-                 * 如果ft大于MAXIMUM_CAPACITY，则t=MAXIMUM_CAPACITY
+                /*
+                 * 如果ft小于MAXIMUM_CAPACITY(1073741824)，则t=ft；
+                 * 如果ft大于MAXIMUM_CAPACITY(1073741824)，则t=MAXIMUM_CAPACITY
                  */
                 int t = ((ft < (float) MAXIMUM_CAPACITY) ?
                         (int) ft : MAXIMUM_CAPACITY);
-                //如果t小于threshold，threshold为t的两倍幂
+                /*
+                 * 如果t大于于threshold(table的最适宜的长度)，threshold为t的两倍幂
+                 * 则table进行适当的扩容
+                 */
                 if (t > threshold)
                     threshold = tableSizeFor(t);
+
+
+                //上面进行适当的扩容之后，再次进行map集合元素个数和threshold进行比较
+                //如果map元素个数大于threshold的值，再进行table的容量的计算
             } else if (s > threshold)
                 //如果被添加进来的map容器中元素大于threshold，则将容器中全部Node节点往2的幂偏移量移动
                 resize();
 
-            //从m.entrySet()中遍历Node节点，添加到HashMap容器中
+            /*
+             * 遍历出m的元素（实际是取出Map集合中所有entry对象）
+             * 然后逐个put到该HashMap中
+             */
             for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
                 //取出每个Node节点的key和value
                 K key = e.getKey();
@@ -273,7 +329,11 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     //根据map的key获取相应的value
     public V get(Object key) {
         Node<K, V> e;
-        //将得到的Node中的V返回
+        /*
+         * 根据key和key的hash值去获取Node节点，
+         * 如果有则返回相应的node节点对象，然后取出node节点的value值并返回
+         * 如果没有则返回null
+         */
         return (e = getNode(hash(key), key)) == null ? null : e.value;
     }
 
@@ -281,31 +341,57 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     //获取HashMap内部类中Node类节点
     //根据hash和key值获取相应的Node节点
     final Node<K, V> getNode(int hash, Object key) {
-        //容器转载
+        //声明一个Node数组的tab容器，以做临时存储用
         Node<K, V>[] tab;
-        //头结点
+        //声明一个头节点
         Node<K, V> first, e;
-        //数量标记
+        //数量标记。临时存储table的长度
         int n;
         //key
         K k;
-        //如果table容器(Node<k,v> table)不为null，且长度不为0
+        //如果table容器(Node<k,v> table)不为null，且长度不为0，且头结点first不为null
         if ((tab = table) != null && (n = tab.length) > 0 &&
-                //取模运算：(n-1) & hash
-                //将取模运算得到的下标相应多的Node赋给first
+                /*
+                 * 按位与运算（用于二进制的运算）：
+                 * (n-1) & hash --->  table的长度减去1的结果的二进制数 & 传进来的hash二进制数 如果有一个为0，则为0，都不为0，则为1；取出按位与的二进制结果值转成int型数
+                 * 然后取出按位与后的int值为下标，取出table下标（可能为null）的元素作为头节点。
+                 *
+                 */
                 (first = tab[(n - 1) & hash]) != null) {
+
+
+            /*
+             * &&的优先级高于||
+             *
+             * 先判断头结点，如果头结点first匹配上，直接返回；不做多余的匹配了
+             */
             if (first.hash == hash && // always check first node
                     ((k = first.key) == key || (key != null && key.equals(k))))
                 //如果first的key与参入的key值相同，则返回first节点
                 return first;
-            //如果不等，往下找，有待研究里面的逻辑？
+            /*
+             * 如果头结点first匹配不上，则判断first头结点的下标位置的是否有链表（双向链表）存储；
+             * 如果有链表，则匹配first头结点的链表元素；
+             * 而不是先去匹配table动态数组的元素；
+             */
+            //如果first头结点的next不为null，取出first的下一个节点元素
             if ((e = first.next) != null) {
+                //再判断first是否为TreeNode（二叉树，红黑树）
                 if (first instanceof TreeNode)
+                    //如果是first是TreeNode，则调用getTreeNode(int hash,key)方法获取TreeNode节点
                     return ((TreeNode<K, V>) first).getTreeNode(hash, key);
+
+                /*
+                 * 如果不是TreeNode节点，是普通的Node双向链表，则循环遍历双向链表的节点进行匹配
+                 */
                 do {
+                    /*
+                     * 如果first的next中hash和key匹配上，或者key不为null，key并匹配上，则直接返回
+                     */
                     if (e.hash == hash &&
                             ((k = e.key) == key || (key != null && key.equals(k))))
                         return e;
+                    //直到双向链表中的每个node都匹配一次
                 } while ((e = e.next) != null);
             }
         }
@@ -1475,7 +1561,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     // Tree bins
 
 
-    /**
+    /*
      * HashMap的内部树节点类TreeNode，二叉树的查找效率比链式节点的效率高
      *
      * @param <K>
@@ -1503,7 +1589,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
             super(hash, key, val, next);
         }
 
-        /**
+        /*
          * Returns root of tree containing this node.
          * 返回包含此节点的树的根。
          */
@@ -1515,7 +1601,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
             }
         }
 
-        /**
+        /*
          * Ensures that the given root is the first node of its bin.
          */
         //移动根节点到前面，保证根节点是最前面的
@@ -1586,7 +1672,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
             return d;
         }
 
-        /**
+        /*
          * Forms tree of the nodes linked from this node.
          */
         final void treeify(Node<K, V>[] tab) {
@@ -1630,7 +1716,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
             moveRootToFront(tab, root);
         }
 
-        /**
+        /*
          * Returns a list of non-TreeNodes replacing those linked from
          * this node.
          */
