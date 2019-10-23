@@ -6,7 +6,8 @@ import java.util.function.BiFunction;
 import java.io.IOException;
 
 /**
- * 哈希表和链表实现的Map接口，具有可预测的迭代次序。 这种实现不同于HashMap，它维持于所有条目的运行双向链表。
+ * LinkedHashMap：链表和hash结合的Map集合，链表为双向链表
+ * 实际上LinkedHashMap是继承了HashMap，是HashMap的子类。
  *
  * @param <K>
  * @param <V>
@@ -14,17 +15,14 @@ import java.io.IOException;
 public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
 
 
-    /**
-     * HashMap.Node subclass for normal LinkedHashMap entries.
-     * HashMap。普通LinkedHashMap条目的节点子类。
-     * Entry<K, V>继承了HashMap中的Node节点类
-     */
-    //LinkedHashMap使用通过使用父类HashMap中Node类来实现双端双向链表的
+    //LinkedHashMap使用通过扩展父类HashMap中Node类来实现双端双向链表的
     static class Entry<K, V> extends HashMap.Node<K, V> {
-        //声明自身
+        /*
+         * 声明元素的前一个元素的指针，和后一个元素的指针
+         */
         Entry<K, V> before, after;
 
-        /**
+        /*
          * 将两个节点转成Entry对象
          *
          * @param hash  第一个Node的hash值
@@ -52,6 +50,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
     // internal utilities
 
     // link at the end of list
+    //链表的尾部进行节点的添加
     private void linkNodeLast(LinkedHashMap.Entry<K, V> p) {
         LinkedHashMap.Entry<K, V> last = tail;
         //尾结点和头结点都为p
@@ -67,6 +66,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
     }
 
     // apply src's links to dst
+    //反转链表结构
     private void transferLinks(LinkedHashMap.Entry<K, V> src,
                                LinkedHashMap.Entry<K, V> dst) {
         LinkedHashMap.Entry<K, V> b = dst.before = src.before;
@@ -83,15 +83,22 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
 
     // overrides of HashMap hook methods
 
+    //初始化LinkedHashMap中参数
     void reinitialize() {
         super.reinitialize();
+        //头结点和尾结点至为null
         head = tail = null;
     }
 
+    //创建一个新的node节点
     Node<K, V> newNode(int hash, K key, V value, Node<K, V> e) {
+        //创建一个LinkedHashMap中的Entry对象
         LinkedHashMap.Entry<K, V> p =
                 new LinkedHashMap.Entry<K, V>(hash, key, value, e);
+
+        //尾部添加节点
         linkNodeLast(p);
+        //尾部添加后，返回
         return p;
     }
 
@@ -103,6 +110,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
         return t;
     }
 
+    //初始化一个TreeNode
     TreeNode<K, V> newTreeNode(int hash, K key, V value, Node<K, V> next) {
         TreeNode<K, V> p = new TreeNode<K, V>(hash, key, value, next);
         linkNodeLast(p);
@@ -163,6 +171,7 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
         }
     }
 
+    //序列化
     void internalWriteEntries(java.io.ObjectOutputStream s) throws IOException {
         for (LinkedHashMap.Entry<K, V> e = head; e != null; e = e.after) {
             s.writeObject(e.key);
@@ -223,9 +232,6 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
         return e.value;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public V getOrDefault(Object key, V defaultValue) {
         Node<K, V> e;
         if ((e = getNode(hash(key), key)) == null)
@@ -235,9 +241,6 @@ public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V> {
         return e.value;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public void clear() {
         super.clear();
         head = tail = null;

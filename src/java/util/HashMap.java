@@ -412,30 +412,90 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     }
 
 
+    /*
+     * 此方法为HashMap中put的核心：
+     * hash：用于计算key下标hash值
+     * key：key
+     * value：value
+     * onlyIfAbsent：
+     * evict：
+     */
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
-        //过渡的数组容器，最后会将tab赋给table
+        //临时数组容器，最后会将tab赋给table
         Node<K, V>[] tab;
-        //Node对象，包含了Key和Value
+        //Node对象p，用于临时存储计算出index下标的该下标元素；不管是为null，还是不为null
         Node<K, V> p;
         //n：长度
         //i：Node[] tab的下标
         int n, i;
-        //将table赋给tab，如果tab为null，或者tab.length为0
+
+        /*
+         * HashMap在put元素之前做两件事：
+         * 1、判断是否为第一次put，如果是第一次put需要初始化数组容器，通过计算为数组开辟相应的空间；
+         *    如果不是第一次put，直接省略该步骤处理
+         * 2、用数组容器长度与hash进行按位与元素，确定元素在数组容器中的index下标
+         */
+
+
+
+
+
+        /*
+         * 检查是否是第一次put元素到集合中：
+         * 1、如果是则为其初始化数组容器和开辟适当的容量长度
+         * 2、如果不是不执行这步处理
+         */
         if ((tab = table) == null || (n = tab.length) == 0)
             //2的倍幂扩容
+            //初始化容器，并获取容器的长度
             n = (tab = resize()).length;
+
+        /*
+         * 1、通过数组的大小和Hash值进行按位与运算，以确定元素要存储在数组中的下标，
+         * 2、由于计算得到的index可能会有重复（也就是该index处已经存储元素了），当确定元素存储的index下标时，
+         *    检查index下标出，是否已经有元素了。
+         * 3、如果index下标有元素了，进行链表存储处理，如果为null，还没有存储元素，则直接存储在该index下
+         */
+
+        //将计算出的下标index元素临时赋给p
+        //如果i下标出没有元素存储，则直接存储一个新node节点
         if ((p = tab[i = (n - 1) & hash]) == null)
+            //new一个Node，存储在i下标处
             tab[i] = newNode(hash, key, value, null);
         else {
+
+            /*
+             * 如果计算出来的下标，已经有元素存储，则进行链式存储
+             */
             Node<K, V> e;
             K k;
+            /*
+             * 对计算出的index下标的元素进行比较匹配
+             *
+             * p元素有两种情况：
+             * 1、为null
+             * 2、不为null，有值
+             *
+             * 此处判断是有值处理，判断准备要存储的元素和该元素的key和hash是否相同；
+             * 1、如果key和hash相同，直接替换该元素（保证了key唯一性）
+             * 2、如果不相同，则进行红黑二叉树或链式存储处理
+             *
+             */
+
+            //如果key和hash相同，直接替换（保证key唯一性）
             if (p.hash == hash &&
                     ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
+
+                //如果不相等，则判断是否为TreeNode结构
             else if (p instanceof TreeNode)
+                //如果是TreeNode存储，则进行TreeNode存储
                 e = ((TreeNode<K, V>) p).putTreeVal(this, tab, hash, key, value);
+
+                //如果即不相等也不是TreeNode存储结构
             else {
+                //
                 for (int binCount = 0; ; ++binCount) {
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
@@ -449,6 +509,8 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
                     p = e;
                 }
             }
+
+            //如果元素e不为null，进行新value和老value替换，并返出
             if (e != null) { // existing mapping for key
                 V oldValue = e.value;
                 if (!onlyIfAbsent || oldValue == null)
@@ -457,7 +519,9 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
                 return oldValue;
             }
         }
+        //增加修改次数记录
         ++modCount;
+        //判断table的size和threshold，再次调整table的容量长度大小
         if (++size > threshold)
             resize();
         afterNodeInsertion(evict);
@@ -670,12 +734,15 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
         return ks;
     }
 
+    //KeySet类，用于快速获取Map中的所有key
     final class KeySet extends AbstractSet<K> {
         public final int size() {
             return size;
         }
 
         public final void clear() {
+            //实际上清空动态数组容器的table
+            //如果有链表Node，是不做null处理的
             HashMap.this.clear();
         }
 
@@ -1174,6 +1241,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     /* ------------------------------------------------------------ */
     // iterators
 
+    //Hash的迭代器，抽象类
     abstract class HashIterator {
         Node<K, V> next;        // next entry to return
         Node<K, V> current;     // current entry
@@ -1222,6 +1290,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
         }
     }
 
+    //Map中的key迭代器
     final class KeyIterator extends HashIterator
             implements Iterator<K> {
         public final K next() {
@@ -1229,6 +1298,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
         }
     }
 
+    //Map中value的迭代器
     final class ValueIterator extends HashIterator
             implements Iterator<V> {
         public final V next() {
@@ -1236,6 +1306,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
         }
     }
 
+    //Entry的迭代器
     final class EntryIterator extends HashIterator
             implements Iterator<Map.Entry<K, V>> {
         public final Map.Entry<K, V> next() {
@@ -1498,7 +1569,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
     // LinkedHashMap support
 
 
-    // Create a regular (non-tree) node
+    // 创建一个Node节点
     Node<K, V> newNode(int hash, K key, V value, Node<K, V> next) {
         return new Node<>(hash, key, value, next);
     }
@@ -1508,7 +1579,6 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
         return new Node<>(p.hash, p.key, p.value, next);
     }
 
-    // Create a tree bin node
     //创建一个TreeNode节点
     TreeNode<K, V> newTreeNode(int hash, K key, V value, Node<K, V> next) {
         return new TreeNode<>(hash, key, value, next);
@@ -1733,18 +1803,35 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
             return hd;
         }
 
-        /**
+        /*
          * Tree version of putVal.
          * 树节点TreeNode的添加元素
+         *
+         * map：该对象
+         * tab：该对象的动态数组容器
+         * h：hash值
+         * k：map的key
+         * v：map的value
          */
         final TreeNode<K, V> putTreeVal(HashMap<K, V> map, Node<K, V>[] tab,
                                         int h, K k, V v) {
+            //key的class字节码临时变量
             Class<?> kc = null;
+            //查找标记
             boolean searched = false;
+
+            //如果已经有父节点，则直接返回父节点；如果没有，则直接使用当前对象为父节点
             TreeNode<K, V> root = (parent != null) ? root() : this;
+            //从父节点开始遍历
             for (TreeNode<K, V> p = root; ; ) {
+                /*
+                 * dir:
+                 * ph:父节点的hash值
+                 */
                 int dir, ph;
+                //父节点的key
                 K pk;
+                //
                 if ((ph = p.hash) > h)
                     dir = -1;
                 else if (ph < h)
