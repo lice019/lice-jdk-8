@@ -244,7 +244,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Clone
 
         //HashMap对象的加载因子
         this.loadFactor = loadFactor;
-        //初始table数组的容器长度
+        //计算table数组的容器长度
         this.threshold = tableSizeFor(initialCapacity);
     }
 
