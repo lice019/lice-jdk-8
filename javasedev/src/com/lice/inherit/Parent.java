@@ -8,7 +8,8 @@ package com.lice.inherit;
  */
 public class Parent {
 
-    private String pName;
+    public String pName;
+    public Son son;
 
     public Parent() {
         System.out.println("parent的无参构造器执行了.......");
@@ -18,4 +19,8 @@ public class Parent {
         System.out.println("parent的有参构造器执行了");
         this.pName = pName;
     }
+    public void toPrint(){
+
+    }
+
 }
